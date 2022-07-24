@@ -7,6 +7,7 @@ import time
 
 import mmcv
 import torch
+import numpy as np
 from mmcv.runner import init_dist
 from mmcv.utils import Config, DictAction, get_git_hash
 
@@ -15,7 +16,12 @@ from depth.apis import set_random_seed, train_depther
 from depth.datasets import build_dataset
 from depth.models import build_depther, build_depther
 from depth.utils import collect_env, get_root_logger
+from IPython import embed
 
+import wandb
+wandb_key = "9914c011f2f4b8c885948776481ae3f788853382"  # mazhuang
+wandb.login(key=wandb_key)
+assert (wandb_key is not None)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a depthor')
@@ -133,7 +139,30 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
+    pretrained_state = torch.load("/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/pe_checkpoint.pth", map_location='cpu')
+    model_dict = model.state_dict()
+    # embed()
+    # exit()
+    # model_dict['backbone.patch_embed.my_projection.weight'].copy_(pretrained_state['backbone.patch_embed.projection.weight'])
+    # model_dict['backbone.patch_embed.my_projection.bias'].copy_(pretrained_state['backbone.patch_embed.projection.bias'])
 
+    for name, param in pretrained_state.items():
+        if name in model_dict.keys():
+            if model_dict[name].shape == param.shape:
+                model_dict[name].copy_(param)
+            else:
+                temp_param = torch.zeros(model_dict[name].shape)
+                temp_param[:,0:3,:,:] = param
+                # shape_index = np.array(param.shape)-1
+                # temp_param[shape_index] = param[shape_index]
+
+                model_dict[name].copy_(temp_param)
+                # print(name)
+        else:
+            print("Missing Key:{}".format(name)) 
+
+    # embed()
+    # exit()
     # NOTE: set all the bn to syncbn
     import torch.nn as nn
     if cfg.get('SyncBN', False):
@@ -142,6 +171,11 @@ def main():
     logger.info(model)
 
     datasets = [build_dataset(cfg.data.train)]
+
+    # data = datasets[0][0]
+    # embed()
+    # exit()    
+
     if len(cfg.workflow) == 2:
         val_dataset = copy.deepcopy(cfg.data.val)
         val_dataset.pipeline = cfg.data.train.pipeline

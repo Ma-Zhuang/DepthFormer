@@ -1,4 +1,5 @@
 # model settings
+# USEPE = False
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 backbone_norm_cfg = dict(type='LN', requires_grad=True)
 conv_stem_norm_cfg = dict(type='BN', requires_grad=True)
@@ -28,7 +29,8 @@ model = dict(
         pretrain_style='official',
         conv_norm_cfg=conv_stem_norm_cfg,
         depth=50,
-        num_stages=0),
+        num_stages=0,
+        USEPE=True),
     decode_head=dict(
         type='DenseDepthHead',
         in_channels=[768, 384, 192, 96, 64],

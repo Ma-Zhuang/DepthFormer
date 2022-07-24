@@ -1,44 +1,42 @@
 _base_ = [
-    '../_base_/models/depthformer_swin.py', '../_base_/datasets/nyu.py',
+    '../_base_/models/depthformer_swin.py', '../_base_/datasets/kitti.py',
     '../_base_/default_runtime.py'
 ]
 
-
 model = dict(
-    # pretrained='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth', # noqa
-    pretrained='/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/swin_tiny_patch4_window7_224.pth',
+    # pretrained='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window7_224_22k.pth', # noqa
+    # pretrained=None,
+    pretrained='/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/swin_large_patch4_window7_224_22k.pth',
     backbone=dict(
-        embed_dims=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
+        embed_dims=192,
+        depths=[2, 2, 18, 2],
+        num_heads=[6, 12, 24, 48],
         window_size=7),
     neck=dict(
         type='HAHIHeteroNeck',
         positional_encoding=dict(
-            type='SinePositionalEncoding', num_feats=128),
-        in_channels=[64, 96, 192, 384, 768],
-        out_channels=[64, 96, 192, 384, 768],
-        embedding_dim=256,
+            type='SinePositionalEncoding', num_feats=256),
+        in_channels=[64, 192, 384, 768, 1536],
+        out_channels=[64, 192, 384, 768, 1536],
+        embedding_dim=512,
         scales=[1, 1, 1, 1, 1]),
     decode_head=dict(
         type='DenseDepthHead',
         act_cfg=dict(type='LeakyReLU', inplace=True),
-        in_channels=[64, 96, 192, 384, 768],
-        up_sample_channels=[64, 96, 192, 384, 768],
+        in_channels=[64, 192, 384, 768, 1536],
+        up_sample_channels=[64, 192, 384, 768, 1536],
         channels=64,
         min_depth=1e-3,
-        max_depth=10,
+        max_depth=80,
     ))
-
 # batch size
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=8,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
 )
-
 # schedules
 # optimizer
-max_lr=0.00006
+max_lr=1e-4
 optimizer = dict(
     type='AdamW',
     lr=max_lr,
@@ -64,18 +62,36 @@ runner = dict(type='IterBasedRunner', max_iters=1600 * 24)
 checkpoint_config = dict(by_epoch=False, max_keep_ckpts=2, interval=1600)
 evaluation = dict(by_epoch=False, 
                   start=0,
-                  interval=1600, 
+                  interval=800, 
                   pre_eval=True, 
                   rule='less', 
                   save_best='abs_rel',
                   greater_keys=("a1", "a2", "a3"), 
                   less_keys=("abs_rel", "rmse"))
-
 # iter runtime
+# log_config = dict(
+#     _delete_=True,
+#     interval=1,
+#     hooks=[
+#         dict(type='TextLoggerHook', by_epoch=False),
+#         dict(type='TensorboardLoggerHook')
+#     ])
 log_config = dict(
-    _delete_=True,
-    interval=50,
+    interval=10,
     hooks=[
-        dict(type='TextLoggerHook', by_epoch=False),
-        dict(type='TensorboardLoggerHook')
-    ])
+        dict(type="TextLoggerHook"),
+        dict(
+            type="WandbLoggerHook",
+            init_kwargs=dict(
+                project="DepthFormer",
+                name="PE Transformer INF is 0 NAN is 0 norm 85",
+                tags=[
+                    "8gpus",
+                ],
+                entity="mazhuang",
+            ),
+            # temporary
+            interval=1,
+        ),
+    ],
+)

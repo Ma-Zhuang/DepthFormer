@@ -35,9 +35,26 @@ class Normalize(object):
             dict: Normalized results, 'img_norm_cfg' key is added into
                 result dict.
         """
-
-        results['img'] = mmcv.imnormalize(results['img'], self.mean, self.std,
-                                          self.to_rgb)
+        img_pe = results['img']
+        # print(results['img'][:,:,1])
+        if img_pe.shape[-1] == 4:
+            img = img_pe[:,:,0:3].copy().astype(np.uint8)
+            pe =  img_pe[:,:,-1].copy()
+            pe[pe>0] = pe[pe>0] / 85
+            rgb = mmcv.imnormalize(img, self.mean, self.std, self.to_rgb)
+            results['img'] = np.concatenate([rgb,pe[:,:,None]],axis=-1)
+        else:
+            img = img_pe.copy()
+            rgb = mmcv.imnormalize(img, self.mean, self.std, self.to_rgb)
+            results['img'] = rgb
+        
+        # results['img'][:,:,0:3] = mmcv.imnormalize(img, self.mean, self.std,
+        #                            self.to_rgb)
+        
+        # print(results['img'])
+        # results['img'] = mmcv.imnormalize(results['img'], self.mean, self.std,
+        #                                   self.to_rgb)
+        # print(results['img'].shape)
         results['img_norm_cfg'] = dict(mean=self.mean,
                                        std=self.std,
                                        to_rgb=self.to_rgb)
@@ -109,7 +126,6 @@ class KBCrop(object):
         Returns:
             dict: Croped results.
         """
-        # print(results)
         height = results["img_shape"][0]
         width = results["img_shape"][1]
         top_margin = int(height - self.height)
@@ -183,8 +199,9 @@ class RandomRotate(object):
         Returns:
             dict: Rotated results.
         """
-
+        # np.random.seed(5)
         rotate = True if np.random.rand() < self.prob else False
+        # rotate = False
         degree = np.random.uniform(min(*self.degree), max(*self.degree))
         if rotate:
             # rotate image
@@ -249,7 +266,7 @@ class RandomFlip(object):
             dict: Flipped results, 'flip', 'flip_direction' keys are added into
                 result dict.
         """
-
+        # np.random.seed(5)
         if 'flip' not in results:
             flip = True if np.random.rand() < self.prob else False
             results['flip'] = flip
@@ -285,6 +302,7 @@ class RandomCrop(object):
 
     def get_crop_bbox(self, img):
         """Randomly get a crop bounding box."""
+        # np.random.seed(5)
         margin_h = max(img.shape[0] - self.crop_size[0], 0)
         margin_w = max(img.shape[1] - self.crop_size[1], 0)
         offset_h = np.random.randint(0, margin_h + 1)
@@ -363,10 +381,12 @@ class ColorAug(object):
         Returns:
             dict: Randomly colored results.
         """
+        # np.random.seed(5)
         aug = True if np.random.rand() < self.prob else False
-
         if aug:
-            image = results['img']
+            # np.random.seed(5)
+            image = results['img'][:,:,0:3]
+            # image = results['img']
 
             # gamma augmentation
             gamma = np.random.uniform(min(*self.gamma_range),
@@ -388,7 +408,8 @@ class ColorAug(object):
             image_aug *= color_image
             image_aug = np.clip(image_aug, 0, 255)
 
-            results['img'] = image_aug
+            results['img'][:,:,0:3] = image_aug
+            # results['img'] = image_aug
 
         return results
 

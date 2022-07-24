@@ -25,6 +25,8 @@ from ..utils import ResLayer
 
 from mmcv.cnn import ConvModule
 
+from IPython import embed
+
 class PatchMerging(BaseModule):
     """Merge patch feature map.
 
@@ -661,12 +663,17 @@ class DepthFormerSwin(BaseModule):
                  conv_strides=(1, 2, 2, 2),
                  conv_dilations=(1, 1, 1, 1),
                  style='pytorch',
-                 conv_pretrained=None):
+                 conv_pretrained=None,
+                 USEPE = False):
         super(DepthFormerSwin, self).__init__()
 
         self.conv_cfg = conv_cfg
         self.conv_norm_cfg = conv_norm_cfg
         self.style = style
+        self.USEPE = USEPE
+        # self.myconv = build_conv_layer(self.conv_cfg,4,3,1)
+        # self.ReLU = nn.ReLU()
+        # self.BN = nn.BatchNorm2d(3,3)
 
         if isinstance(pretrain_img_size, int):
             pretrain_img_size = to_2tuple(pretrain_img_size)
@@ -679,7 +686,6 @@ class DepthFormerSwin(BaseModule):
 
         assert pretrain_style in ['official', 'mmcls'], 'We only support load '
         'official ckpt and mmcls ckpt.'
-
         if isinstance(pretrained, str) or pretrained is None:
             warnings.warn('DeprecationWarning: pretrained is a deprecated, '
                           'please use "init_cfg" instead')
@@ -695,9 +701,8 @@ class DepthFormerSwin(BaseModule):
         self.init_cfg = init_cfg
 
         assert strides[0] == patch_size, 'Use non-overlapping patch embed.'
-
         self.patch_embed = PatchEmbed(
-            in_channels=in_channels,
+            in_channels=4 if self.USEPE else in_channels,
             embed_dims=embed_dims,
             conv_type='Conv2d',
             kernel_size=patch_size,
@@ -705,6 +710,16 @@ class DepthFormerSwin(BaseModule):
             pad_to_patch_size=True,
             norm_cfg=norm_cfg if patch_norm else None,
             init_cfg=None)
+        
+        # self.patch_embed = PatchEmbed(
+        #     in_channels=in_channels,
+        #     embed_dims=embed_dims,
+        #     conv_type='Conv2d',
+        #     kernel_size=patch_size,
+        #     stride=strides[0],
+        #     pad_to_patch_size=True,
+        #     norm_cfg=norm_cfg if patch_norm else None,
+        #     init_cfg=None)
 
         if self.use_abs_pos_embed:
             patch_row = pretrain_img_size[0] // patch_size
@@ -763,7 +778,12 @@ class DepthFormerSwin(BaseModule):
             self.add_module(layer_name, layer)
 
         # my extended conv stem
+        # if self.USEPE:
+        #     self._make_stem_layer(4)
+        # else:
+        #     self._make_stem_layer(3)
         self._make_stem_layer(3)
+
 
         # default depth=50, num_stages=1, 2, 3, 4
         self.num_stages = num_stages
@@ -809,6 +829,15 @@ class DepthFormerSwin(BaseModule):
         self.add_module(self._conv_stem_norm1_name, _conv_stem_norm1)
         self._conv_stem_relu = nn.ReLU(inplace=True)
         self._conv_stem_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        # self.conv_skip = ConvModule(64, 64, kernel_size=3, padding=1, stride=1)
+
+    # def _make_myconv_layer(self, in_channels):
+    #     self.conv1 = build_conv_layer(self.conv_cfg,in_channels,3)
+
+        # self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(self.conv_norm_cfg, 64, postfix=1)
+        # self.add_module(self._conv_stem_norm1_name, _conv_stem_norm1)
+        # self._conv_stem_relu = nn.ReLU(inplace=True)
+        # self._conv_stem_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         # self.conv_skip = ConvModule(64, 64, kernel_size=3, padding=1, stride=1)
 
     def init_weights(self):
@@ -878,10 +907,11 @@ class DepthFormerSwin(BaseModule):
                             nH2, L2).permute(1, 0).contiguous()
 
             # load state_dict
-            self.load_state_dict(state_dict, False)
+            # self.load_state_dict(state_dict, False)
 
     def conv_stem(self, x):
-        
+        # embed()
+        # exit()
         conv_stem = self.conv1(x)
         conv_stem = self._conv_stem_norm1(conv_stem)
         conv_stem = self._conv_stem_relu(conv_stem)
@@ -895,11 +925,23 @@ class DepthFormerSwin(BaseModule):
         return conv_stem
 
     def forward(self, x):
+        # embed()
+        # exit()
         outs = []
-        conv_stem = self.conv_stem(x)
-        outs.append(conv_stem)
 
+        if self.USEPE:
+            x_3 = x[:,0:3,:,:]
+            conv_stem = self.conv_stem(x_3)
+            outs.append(conv_stem)
+        else:
+            conv_stem = self.conv_stem(x)
+            outs.append(conv_stem)
+        # conv_stem = self.conv_stem(x)
+        # outs.append(conv_stem)
+        
         x = self.patch_embed(x)
+        # temp_x1 = self.patch_embed_4(x)
+        # temp_x2 = self.patch_embed(x)
 
         hw_shape = (self.patch_embed.DH, self.patch_embed.DW)
         if self.use_abs_pos_embed:
@@ -915,5 +957,6 @@ class DepthFormerSwin(BaseModule):
                                self.num_features[i]).permute(0, 3, 1,
                                                              2).contiguous()
                 outs.append(out)
+        # print(self.patch_embed.projection.bias)
 
         return outs

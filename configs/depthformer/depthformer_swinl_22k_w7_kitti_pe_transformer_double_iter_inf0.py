@@ -1,12 +1,12 @@
 _base_ = [
-    '../_base_/models/depthformer_swin.py', '../_base_/datasets/kitti_benchmark.py',
+    '../_base_/models/depthformer_swin.py', '../_base_/datasets/kitti.py',
     '../_base_/default_runtime.py'
 ]
 
 model = dict(
     # pretrained='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window7_224_22k.pth', # noqa
-    # pretrained='/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/swin_large_patch4_window7_224_22k.pth',
-    pretrained = None,
+    # pretrained=None,
+    pretrained='/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/swin_large_patch4_window7_224_22k.pth',
     backbone=dict(
         embed_dims=192,
         depths=[2, 2, 18, 2],
@@ -58,7 +58,7 @@ lr_config = dict(
     by_epoch=False) # test add by_epoch false
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # runtime settings
-runner = dict(type='IterBasedRunner', max_iters=1600 * 24)
+runner = dict(type='IterBasedRunner', max_iters=1600 * 48)
 checkpoint_config = dict(by_epoch=False, max_keep_ckpts=2, interval=1600)
 evaluation = dict(by_epoch=False, 
                   start=0,
@@ -69,10 +69,29 @@ evaluation = dict(by_epoch=False,
                   greater_keys=("a1", "a2", "a3"), 
                   less_keys=("abs_rel", "rmse"))
 # iter runtime
+# log_config = dict(
+#     _delete_=True,
+#     interval=1,
+#     hooks=[
+#         dict(type='TextLoggerHook', by_epoch=False),
+#         dict(type='TensorboardLoggerHook')
+#     ])
 log_config = dict(
-    _delete_=True,
-    interval=50,
+    interval=10,
     hooks=[
-        dict(type='TextLoggerHook', by_epoch=False),
-        dict(type='TensorboardLoggerHook')
-    ])
+        dict(type="TextLoggerHook"),
+        dict(
+            type="WandbLoggerHook",
+            init_kwargs=dict(
+                project="DepthFormer",
+                name="PE Transformer Double Iter INF is 0",
+                tags=[
+                    "8gpus",
+                ],
+                entity="mazhuang",
+            ),
+            # temporary
+            interval=1,
+        ),
+    ],
+)

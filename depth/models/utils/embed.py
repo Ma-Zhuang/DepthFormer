@@ -6,6 +6,7 @@ import torch.nn as nn
 from mmcv.cnn import build_conv_layer, build_norm_layer
 from mmcv.runner.base_module import BaseModule
 from torch.nn.modules.utils import _pair as to_2tuple
+from IPython import embed
 
 
 class AdaptivePadding(nn.Module):
@@ -263,6 +264,18 @@ class PatchEmbedSwin(BaseModule):
             padding=padding,
             dilation=dilation)
 
+        # self.my_projection = build_conv_layer(
+        #     dict(type=conv_type),
+        #     in_channels=3,
+        #     out_channels=embed_dims,
+        #     kernel_size=kernel_size,
+        #     stride=stride,
+        #     padding=padding,
+        #     dilation=dilation)
+
+
+    
+
         # TODO: remove hack to 50% overlap
         # self.projection = build_conv_layer(
         #     dict(type=conv_type),
@@ -291,7 +304,17 @@ class PatchEmbedSwin(BaseModule):
             if W % self.patch_size[1] != 0:
                 x = F.pad(
                     x, (0, self.patch_size[1] - W % self.patch_size[1], 0, 0))
-
+        # embed()
+        # exit()
+        # my_x = x[:,:-1,:,:]
+        # my_param = torch.zeros([192,3,4,4],device=torch.cuda.current_device())
+        # my_param[:,:,:,:] = next(self.projection.parameters())[:,:-1,...]
+        # self.my_projection.weight = torch.nn.Parameter(my_param)
+        # self.my_projection.bias = self.projection.bias
+        # my_y = self.my_projection(my_x)
+        # y = self.projection(x)
+        # ####
+        # my_x = self.my_projection(my_x)
         x = self.projection(x)
         self.DH, self.DW = x.shape[2], x.shape[3]
         x = x.flatten(2).transpose(1, 2)

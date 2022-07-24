@@ -1,3 +1,4 @@
+import cv2
 import json
 import mmcv
 import numpy as np
@@ -184,12 +185,14 @@ class LoadImageFromFile(object):
                  to_float32=False,
                  color_type='color',
                  file_client_args=dict(backend='disk'),
-                 imdecode_backend='cv2'):
+                 imdecode_backend='cv2',
+                 USEPE=False):
         self.to_float32 = to_float32
         self.color_type = color_type
         self.file_client_args = file_client_args.copy()
         self.file_client = None
         self.imdecode_backend = imdecode_backend
+        self.USEPE = USEPE
 
     def __call__(self, results):
         """Call functions to load image and get image meta information.
@@ -218,6 +221,19 @@ class LoadImageFromFile(object):
 
         results['filename'] = filename
         results['ori_filename'] = results['img_info']['filename']
+        if self.USEPE:
+            # mask_prob = 0.8
+
+            pe_depth = (cv2.imread('data/kitti/input/'+results['ori_filename'].split('/')[0]+'/'+results['ori_filename'].split('/')[1]+'/pe.png',-1)/100).astype(np.float32)
+            
+            pe_mask = np.random.uniform(low=0,high=1,size=(pe_depth.shape))
+            mask_prob = 0.8
+            pe_mask = pe_mask > mask_prob 
+            pe_depth = pe_depth * pe_mask
+            
+            pe_depth[pe_depth>85] = 0
+            # pe_depth = np.zeros((img.shape[0],img.shape[1])).astype(np.float32)
+            img = np.concatenate((img,np.expand_dims(pe_depth, -1)), axis=-1)
         results['img'] = img
         results['img_shape'] = img.shape
         results['ori_shape'] = img.shape
@@ -230,6 +246,7 @@ class LoadImageFromFile(object):
                                        std=np.ones(num_channels,
                                                    dtype=np.float32),
                                        to_rgb=False)
+        
         return results
 
     def __repr__(self):

@@ -234,7 +234,9 @@ class HAHIHeteroNeck(BaseModule):
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)
-
+        # from IPython import embed
+        # embed()
+        # exit()
         # input projection
         feats_projed = [
             lateral_conv(inputs[i])

@@ -10,6 +10,7 @@ from mmcv.runner import BaseModule, auto_fp16, force_fp32
 
 from depth.ops import resize
 from depth.models.builder import build_loss
+from IPython import embed
 
 
 class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
@@ -199,8 +200,11 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
         return loss
 
     def log_images(self, img_path, depth_pred, depth_gt, img_meta):
+        # embed()
+        # exit()
         show_img = copy.deepcopy(img_path.detach().cpu().permute(1, 2, 0))
         show_img = show_img.numpy().astype(np.float32)
+        show_img = show_img[:,:,0:3]
         show_img = mmcv.imdenormalize(show_img, 
                                       img_meta['img_norm_cfg']['mean'],
                                       img_meta['img_norm_cfg']['std'], 

@@ -1,11 +1,12 @@
 # dataset settings
+USEPE = True
 dataset_type = 'KITTIDataset'
 data_root = 'data/kitti'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size= (352, 704)
 train_pipeline = [
-    dict(type='LoadImageFromFile'),
+    dict(type='LoadImageFromFile',USEPE=USEPE),
     dict(type='DepthLoadAnnotations'),
     dict(type='LoadKITTICamIntrinsic'),
     dict(type='KBCrop', depth=True),
@@ -23,7 +24,7 @@ train_pipeline = [
                     'cam_intrinsic')),
 ]
 test_pipeline = [
-    dict(type='LoadImageFromFile'),
+    dict(type='LoadImageFromFile',USEPE=USEPE),
     dict(type='LoadKITTICamIntrinsic'),
     dict(type='KBCrop', depth=False),
     dict(

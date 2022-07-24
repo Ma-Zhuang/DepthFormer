@@ -9,6 +9,8 @@ from depth.models import builder
 from depth.models.builder import DEPTHER
 from .base import BaseDepther
 
+from IPython import embed
+
 # for model size
 import numpy as np
 
@@ -107,21 +109,21 @@ class DepthEncoderDecoder(BaseDepther):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
-
+        # embed()
         x = self.extract_feat(img)
 
         losses = dict()
 
         # the last of x saves the info from neck
         loss_decode = self._decode_head_forward_train(img, x, img_metas, depth_gt, **kwargs)
- 
+        # embed()
         losses.update(loss_decode)
-
         return losses
 
     def whole_inference(self, img, img_meta, rescale):
         """Inference with full image."""
-
+        # embed()
+        # exit()
         depth_pred = self.encode_decode(img, img_meta, rescale)
 
         return depth_pred
@@ -141,7 +143,8 @@ class DepthEncoderDecoder(BaseDepther):
         Returns:
             Tensor: The output depth map.
         """
-
+        # embed()
+        # exit()
         assert self.test_cfg.mode in ['slide', 'whole']
         ori_shape = img_meta[0]['ori_shape']
         assert all(_['ori_shape'] == ori_shape for _ in img_meta)
@@ -158,7 +161,6 @@ class DepthEncoderDecoder(BaseDepther):
                 output = output.flip(dims=(3, ))
             elif flip_direction == 'vertical':
                 output = output.flip(dims=(2, ))
-
         return output
 
     def simple_test(self, img, img_meta, rescale=True):

@@ -18,8 +18,11 @@ from depth.datasets.pipelines import Compose
 from depth.ops import resize
 
 from PIL import Image
+import cv2
 
 import torch
+
+from IPython import embed
 
 
 @DATASETS.register_module()
@@ -168,7 +171,7 @@ class KITTIDataset(Dataset):
                             [0.000000e+00, 7.188560e+02, 1.852157e+02, -1.130887e-01], 
                             [0.000000e+00, 0.000000e+00, 1.000000e+00, 3.779761e-03]],
         }
-
+        
     def __getitem__(self, idx):
         """Get training/test data after pipeline.
         Args:
